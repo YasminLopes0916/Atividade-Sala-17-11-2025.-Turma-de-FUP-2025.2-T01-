@@ -1,0 +1,262 @@
+from typing import Dict, Union, Tuple
+
+def total_size(fs: Dict[str, Union[int, Dict]]) -> int:
+    """
+    Calcula o tamanho total em bytes de todos os arquivos no sistema de arquivos.
+    
+    Args:
+        fs: Dicionário representando o sistema de arquivos, onde:
+            - Chaves são nomes de arquivos/diretórios (str)
+            - Valores são:
+                * int: tamanho do arquivo em bytes
+                * dict: subdiretório
+    
+    Returns:
+        Tamanho total em bytes de todos os arquivos
+        
+    Raises:
+        ValueError: Se a estrutura do sistema de arquivos for inválida
+    """
+    def _validate_and_calculate(node: Union[int, Dict]) -> int:
+        """
+        Função recursiva auxiliar para validar e calcular tamanho.
+        
+        Args:
+            node: Nó atual do sistema de arquivos (int ou dict)
+            
+        Returns:
+            Tamanho total do nó e seus filhos
+            
+        Raises:
+            ValueError: Se o nó for de tipo inválido
+        """
+        if isinstance(node, int):
+            return node
+        elif isinstance(node, dict):
+            size = 0
+            for key, value in node.items():
+                if not isinstance(key, str):
+                    raise ValueError(f"Nome de arquivo/diretório deve ser string, encontrado: {type(key)}")
+                size += _validate_and_calculate(value)
+            return size
+        else:
+            raise ValueError(f"Tipo inválido no sistema de arquivos: {type(node)}")
+    
+    # Validação da estrutura raiz
+    if not isinstance(fs, dict):
+        raise ValueError("Sistema de arquivos deve ser um dicionário")
+    
+    return _validate_and_calculate(fs)
+
+
+def filesystem_stats(fs: Dict[str, Union[int, Dict]]) -> Tuple[int, int, int]:
+    """
+    Calcula estatísticas completas do sistema de arquivos.
+    
+    Args:
+        fs: Dicionário representando o sistema de arquivos
+        
+    Returns:
+        Tupla (total_size, file_count, folder_count) contendo:
+            - total_size: tamanho total em bytes
+            - file_count: número total de arquivos
+            - folder_count: número total de pastas (incluindo a raiz)
+    
+    Raises:
+        ValueError: Se a estrutura do sistema de arquivos for inválida
+    """
+    def _calculate_stats(node: Union[int, Dict], is_root: bool = False) -> Tuple[int, int, int]:
+        """
+        Função recursiva para calcular estatísticas.
+        
+        Args:
+            node: Nó atual do sistema de arquivos
+            is_root: Se é o nó raiz (para contar como pasta)
+            
+        Returns:
+            Tupla (size, files, folders)
+        """
+        if isinstance(node, int):
+            return node, 1, 0  # tamanho, 1 arquivo, 0 pastas
+        
+        elif isinstance(node, dict):
+            total_size = 0
+            total_files = 0
+            total_folders = 1 if not is_root else 0  # Conta esta pasta (exceto raiz)
+            
+            for key, value in node.items():
+                if not isinstance(key, str):
+                    raise ValueError(f"Nome de arquivo/diretório deve ser string, encontrado: {type(key)}")
+                
+                size, files, folders = _calculate_stats(value)
+                total_size += size
+                total_files += files
+                total_folders += folders
+            
+            return total_size, total_files, total_folders
+        
+        else:
+            raise ValueError(f"Tipo inválido no sistema de arquivos: {type(node)}")
+    
+    # Validação da estrutura raiz
+    if not isinstance(fs, dict):
+        raise ValueError("Sistema de arquivos deve ser um dicionário")
+    
+    size, files, folders = _calculate_stats(fs, is_root=True)
+    # A raiz é considerada uma pasta
+    return size, files, folders + 1
+
+
+def find_largest_file(fs: Dict[str, Union[int, Dict]]) -> Tuple[str, int]:
+    """
+    Encontra o maior arquivo no sistema de arquivos.
+    
+    Args:
+        fs: Sistema de arquivos
+        
+    Returns:
+        Tupla (caminho_arquivo, tamanho) do maior arquivo
+    """
+    def _find_largest(node: Union[int, Dict], current_path: str) -> Tuple[str, int]:
+        if isinstance(node, int):
+            return current_path, node
+        
+        elif isinstance(node, dict):
+            largest_path, largest_size = "", 0
+            
+            for key, value in node.items():
+                path = f"{current_path}/{key}" if current_path else key
+                
+                if isinstance(value, int):
+                    # É um arquivo
+                    if value > largest_size:
+                        largest_path, largest_size = path, value
+                else:
+                    # É um diretório, busca recursivamente
+                    sub_path, sub_size = _find_largest(value, path)
+                    if sub_size > largest_size:
+                        largest_path, largest_size = sub_path, sub_size
+            
+            return largest_path, largest_size
+        
+        else:
+            return "", 0
+    
+    path, size = _find_largest(fs, "")
+    return path, size
+
+
+def print_filesystem_structure(fs: Dict[str, Union[int, Dict]], indent: int = 0) -> None:
+    """
+    Imprime a estrutura do sistema de arquivos de forma hierárquica.
+    
+    Args:
+        fs: Sistema de arquivos
+        indent: Nível de indentação para formatação
+    """
+    for name, content in fs.items():
+        if isinstance(content, int):
+            print("  " * indent + f"📄 {name} ({content} bytes)")
+        else:
+            print("  " * indent + f"📁 {name}/")
+            print_filesystem_structure(content, indent + 1)
+
+
+# Exemplo de uso e testes
+if __name__ == "__main__":
+    print("=== SISTEMA DE ARQUIVOS RECURSIVO ===\n")
+    
+    # Sistema de arquivos de exemplo
+    filesystem = {
+        "file1.txt": 100,
+        "docs": {
+            "cv.pdf": 200,
+            "old": {
+                "notes.txt": 50,
+                "backup.zip": 150
+            },
+            "projects": {
+                "python": {
+                    "script.py": 80,
+                    "data.csv": 120
+                },
+                "docs": {
+                    "readme.txt": 30
+                }
+            }
+        },
+        "img.png": 300,
+        "videos": {
+            "vacation.mp4": 1000
+        }
+    }
+    
+    print("=== ESTRUTURA DO SISTEMA DE ARQUIVOS ===")
+    print_filesystem_structure(filesystem)
+    
+    print("\n=== CÁLCULO DE TAMANHO TOTAL ===")
+    total = total_size(filesystem)
+    print(f"Tamanho total: {total} bytes")
+    print(f"Tamanho total: {total / 1024:.2f} KB")
+    
+    print("\n=== ESTATÍSTICAS COMPLETAS ===")
+    size, file_count, folder_count = filesystem_stats(filesystem)
+    print(f"Tamanho total: {size} bytes")
+    print(f"Quantidade de arquivos: {file_count}")
+    print(f"Quantidade de pastas: {folder_count}")
+    print(f"Tamanho médio por arquivo: {size/file_count:.2f} bytes" if file_count > 0 else "Nenhum arquivo")
+    
+    print("\n=== MAIOR ARQUIVO ===")
+    largest_path, largest_size = find_largest_file(filesystem)
+    print(f"Maior arquivo: {largest_path}")
+    print(f"Tamanho: {largest_size} bytes")
+    
+    print("\n=== TESTES COM CASOS ESPECIAIS ===")
+    
+    # Caso 1: Sistema vazio
+    empty_fs = {}
+    print(f"Sistema vazio - Tamanho: {total_size(empty_fs)} bytes")
+    
+    # Caso 2: Apenas arquivos na raiz
+    flat_fs = {
+        "a.txt": 10,
+        "b.txt": 20,
+        "c.txt": 30
+    }
+    print(f"Sistema plano - Tamanho: {total_size(flat_fs)} bytes")
+    
+    # Caso 3: Estrutura profunda
+    deep_fs = {
+        "level1": {
+            "level2": {
+                "level3": {
+                    "level4": {
+                        "file.txt": 42
+                    }
+                }
+            }
+        }
+    }
+    print(f"Sistema profundo - Tamanho: {total_size(deep_fs)} bytes")
+    
+    # Caso 4: Sistema com muitos arquivos
+    large_fs = {
+        "dir1": {"file1": 100, "file2": 200},
+        "dir2": {"file3": 300, "subdir": {"file4": 400}},
+        "file5": 500
+    }
+    stats = filesystem_stats(large_fs)
+    print(f"Sistema complexo - Tamanho: {stats[0]} bytes, Arquivos: {stats[1]}, Pastas: {stats[2]}")
+    
+    print("\n=== VALIDAÇÃO DE ERROS ===")
+    try:
+        invalid_fs = {"file.txt": "invalid"}  # String em vez de int
+        total_size(invalid_fs)
+    except ValueError as e:
+        print(f"✓ Erro capturado corretamente: {e}")
+    
+    try:
+        invalid_fs2 = {123: 100}  # Int em vez de string como chave
+        total_size(invalid_fs2)
+    except ValueError as e:
+        print(f"✓ Erro capturado corretamente: {e}")
