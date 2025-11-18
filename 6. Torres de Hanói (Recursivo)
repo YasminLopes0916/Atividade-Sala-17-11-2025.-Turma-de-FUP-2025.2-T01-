@@ -1,0 +1,318 @@
+from typing import List, Tuple, Optional
+
+def hanoi(n: int, origem: str = "A", destino: str = "C", auxiliar: str = "B") -> List[Tuple[str, str]]:
+    """
+    Resolve o problema das Torres de Hanói de forma recursiva.
+    
+    Args:
+        n: Número de discos
+        origem: Pino de origem (padrão: "A")
+        destino: Pino de destino (padrão: "C") 
+        auxiliar: Pino auxiliar (padrão: "B")
+        
+    Returns:
+        Lista de tuplas representando os movimentos (origem, destino)
+        
+    Raises:
+        ValueError: Se n for menor que 1
+    """
+    def _hanoi_recursivo(n: int, orig: str, dest: str, aux: str, movimentos: List[Tuple[str, str]]) -> None:
+        """
+        Função recursiva interna para resolver as Torres de Hanói.
+        
+        Args:
+            n: Número de discos a mover
+            orig: Pino de origem
+            dest: Pino de destino
+            aux: Pino auxiliar
+            movimentos: Lista para armazenar os movimentos
+        """
+        if n == 1:
+            # Caso base: mover disco único diretamente para o destino
+            movimentos.append((orig, dest))
+            return
+        
+        # Mover n-1 discos da origem para o auxiliar (usando destino como auxiliar)
+        _hanoi_recursivo(n - 1, orig, aux, dest, movimentos)
+        
+        # Mover o maior disco da origem para o destino
+        movimentos.append((orig, dest))
+        
+        # Mover n-1 discos do auxiliar para o destino (usando origem como auxiliar)
+        _hanoi_recursivo(n - 1, aux, dest, orig, movimentos)
+    
+    # Validação da entrada
+    if n < 1:
+        raise ValueError("n deve ser maior ou igual a 1")
+    
+    movimentos: List[Tuple[str, str]] = []
+    _hanoi_recursivo(n, origem, destino, auxiliar, movimentos)
+    return movimentos
+
+
+def hanoi_com_impressao(n: int, origem: str = "A", destino: str = "C", auxiliar: str = "B") -> None:
+    """
+    Versão que imprime os movimentos na tela.
+    
+    Args:
+        n: Número de discos
+        origem: Pino de origem
+        destino: Pino de destino
+        auxiliar: Pino auxiliar
+    """
+    movimentos = hanoi(n, origem, destino, auxiliar)
+    
+    print(f"Torres de Hanói com {n} disco{'s' if n > 1 else ''}")
+    print(f"Movimentos necessários: {len(movimentos)}")
+    print("-" * 30)
+    
+    for i, (orig, dest) in enumerate(movimentos, 1):
+        print(f"Movimento {i:2d}: {orig} → {dest}")
+
+
+def contar_movimentos(n: int) -> int:
+    """
+    Calcula o número mínimo de movimentos necessários para resolver as Torres de Hanói.
+    
+    Args:
+        n: Número de discos
+        
+    Returns:
+        Número mínimo de movimentos (2^n - 1)
+        
+    Raises:
+        ValueError: Se n for menor que 1
+    """
+    if n < 1:
+        raise ValueError("n deve ser maior ou igual a 1")
+    
+    return (1 << n) - 1  # Equivalente a 2**n - 1, mas mais eficiente
+
+
+def hanoi_com_estado(n: int, origem: str = "A", destino: str = "C", auxiliar: str = "B") -> List[Tuple[dict, Tuple[str, str]]]:
+    """
+    Versão que retorna o estado dos pinos após cada movimento.
+    
+    Args:
+        n: Número de discos
+        
+    Returns:
+        Lista de tuplas (estado_dos_pinos, movimento)
+    """
+    # Inicializa os pinos
+    pinos = {
+        origem: list(range(n, 0, -1)),  # [n, n-1, ..., 1]
+        destino: [],
+        auxiliar: []
+    }
+    
+    resultado = []
+    
+    def _hanoi_com_estado(n: int, orig: str, dest: str, aux: str) -> None:
+        if n == 1:
+            # Move disco
+            disco = pinos[orig].pop()
+            pinos[dest].append(disco)
+            movimento = (orig, dest)
+            resultado.append((pinos.copy(), movimento))
+            return
+        
+        _hanoi_com_estado(n - 1, orig, aux, dest)
+        
+        # Move disco maior
+        disco = pinos[orig].pop()
+        pinos[dest].append(disco)
+        movimento = (orig, dest)
+        resultado.append((pinos.copy(), movimento))
+        
+        _hanoi_com_estado(n - 1, aux, dest, orig)
+    
+    # Estado inicial
+    resultado.append((pinos.copy(), ("INICIO", "INICIO")))
+    
+    _hanoi_com_estado(n, origem, destino, auxiliar)
+    return resultado
+
+
+def imprimir_estado_hanoi(estado: dict, movimento: Tuple[str, str] = None) -> None:
+    """
+    Imprime o estado atual dos pinos de forma visual.
+    
+    Args:
+        estado: Dicionário com os pinos e seus discos
+        movimento: Último movimento realizado
+    """
+    pinos = list(estado.keys())
+    max_discos = max(len(estado[p]) for p in pinos)
+    
+    if movimento and movimento[0] != "INICIO":
+        print(f"Movimento: {movimento[0]} → {movimento[1]}")
+    else:
+        print("Estado inicial:")
+    
+    print("-" * 30)
+    
+    # Imprime de cima para baixo
+    for nivel in range(max_discos - 1, -1, -1):
+        linha = ""
+        for pino in pinos:
+            discos = estado[pino]
+            if nivel < len(discos):
+                disco = discos[nivel]
+                linha += f" [{disco:^3}] "
+            else:
+                linha += "     "
+        print(linha)
+    
+    # Base dos pinos
+    base = "  " + "  ".join(f" {pino} " for pino in pinos) + "  "
+    print("=" * len(base))
+    print(base)
+    print()
+
+
+def demonstrar_hanoi_com_estados(n: int) -> None:
+    """
+    Demonstra a solução das Torres de Hanói mostrando todos os estados.
+    
+    Args:
+        n: Número de discos
+    """
+    estados = hanoi_com_estado(n)
+    
+    print(f"=== SOLUÇÃO DETALHADA DAS TORRES DE HANÓI (n={n}) ===")
+    print(f"Total de movimentos: {len(estados) - 1}")
+    print()
+    
+    for i, (estado, movimento) in enumerate(estados):
+        print(f"Passo {i}:")
+        imprimir_estado_hanoi(estado, movimento)
+        print()
+
+
+# Exemplo de uso e testes
+if __name__ == "__main__":
+    print("=== TORRES DE HANÓI RECURSIVO ===\n")
+    
+    # Teste com diferentes valores de n
+    for n in range(1, 5):
+        print(f"=== TESTE COM n = {n} ===")
+        
+        # Calcula número teórico de movimentos
+        movimentos_teoricos = contar_movimentos(n)
+        print(f"Movimentos teóricos (2^{n} - 1): {movimentos_teoricos}")
+        
+        # Resolve o problema
+        movimentos = hanoi(n)
+        print(f"Movimentos gerados: {len(movimentos)}")
+        
+        # Verifica se a contagem está correta
+        assert len(movimentos) == movimentos_teoricos, f"Contagem incorreta para n={n}"
+        
+        # Imprime os movimentos
+        hanoi_com_impressao(n)
+        print()
+    
+    # Demonstração detalhada com n=3
+    print("=== DEMONSTRAÇÃO DETALHADA (n=3) ===")
+    demonstrar_hanoi_com_estados(3)
+    
+    # Teste de performance
+    print("=== TESTE DE PERFORMANCE ===")
+    import time
+    
+    for n in [5, 10, 15]:
+        start_time = time.time()
+        movimentos = hanoi(n)
+        end_time = time.time()
+        
+        tempo = end_time - start_time
+        movimentos_teoricos = contar_movimentos(n)
+        
+        print(f"n={n:2d}: {len(movimentos):6d} movimentos em {tempo:.4f}s "
+              f"(teórico: {movimentos_teoricos})")
+    
+    # Teste com pinos customizados
+    print("\n=== TESTE COM PINOS CUSTOMIZADOS ===")
+    movimentos_custom = hanoi(3, "TORRE1", "TORRE3", "TORRE2")
+    for i, (orig, dest) in enumerate(movimentos_custom, 1):
+        print(f"Movimento {i}: {orig} → {dest}")
+    
+    # Teste de casos inválidos
+    print("\n=== TESTE DE CASOS INVÁLIDOS ===")
+    try:
+        hanoi(0)
+    except ValueError as e:
+        print(f"✓ Erro capturado para n=0: {e}")
+    
+    try:
+        hanoi(-1)
+    except ValueError as e:
+        print(f"✓ Erro capturado para n=-1: {e}")
+
+
+def validar_solucao_hanoi(n: int, movimentos: List[Tuple[str, str]], 
+                         origem: str = "A", destino: str = "C", 
+                         auxiliar: str = "B") -> bool:
+    """
+    Valida se uma sequência de movimentos resolve corretamente as Torres de Hanói.
+    
+    Args:
+        n: Número de discos
+        movimentos: Lista de movimentos a validar
+        origem: Pino de origem
+        destino: Pino de destino
+        auxiliar: Pino auxiliar
+        
+    Returns:
+        True se a solução é válida, False caso contrário
+    """
+    pinos = {
+        origem: list(range(n, 0, -1)),
+        destino: [],
+        auxiliar: []
+    }
+    
+    for movimento in movimentos:
+        orig, dest = movimento
+        
+        # Verifica se o pino de origem existe e tem discos
+        if orig not in pinos or not pinos[orig]:
+            return False
+        
+        # Pega o disco do topo
+        disco_orig = pinos[orig][-1]
+        
+        # Verifica se o pino de destino existe
+        if dest not in pinos:
+            return False
+        
+        # Verifica se pode mover (disco menor sobre maior ou pino vazio)
+        if pinos[dest] and pinos[dest][-1] < disco_orig:
+            return False
+        
+        # Executa o movimento
+        disco = pinos[orig].pop()
+        pinos[dest].append(disco)
+    
+    # Verifica se todos os discos estão no pino de destino na ordem correta
+    return (pinos[destino] == list(range(n, 0, -1)) and 
+            not pinos[origem] and 
+            not pinos[auxiliar])
+
+
+# Teste de validação
+if __name__ == "__main__" and False:  # Descomente para executar testes de validação
+    print("\n=== TESTES DE VALIDAÇÃO ===")
+    
+    for n in range(1, 4):
+        movimentos = hanoi(n)
+        valido = validar_solucao_hanoi(n, movimentos)
+        print(f"Solução para n={n} é válida: {valido}")
+        
+        # Teste com solução inválida
+        movimentos_invalidos = movimentos.copy()
+        if movimentos_invalidos:
+            movimentos_invalidos[0] = (movimentos_invalidos[0][1], movimentos_invalidos[0][0])  # Inverte
+            valido = validar_solucao_hanoi(n, movimentos_invalidos)
+            print(f"Solução inválida detectada: {not valido}")
