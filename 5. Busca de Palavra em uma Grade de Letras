@@ -1,0 +1,305 @@
+from typing import List, Tuple, Set
+
+def existe_palavra(board: List[List[str]], word: str) -> bool:
+    """
+    Verifica se uma palavra pode ser formada em uma grade de letras.
+    
+    Args:
+        board: Matriz 2D de caracteres
+        word: Palavra a ser buscada
+        
+    Returns:
+        True se a palavra pode ser formada, False caso contrário
+        
+    Raises:
+        ValueError: Se o board estiver vazio ou inválido
+    """
+    def is_valid_position(pos: Tuple[int, int], visited: Set[Tuple[int, int]]) -> bool:
+        """
+        Verifica se uma posição é válida e não foi visitada.
+        
+        Args:
+            pos: Tupla (linha, coluna)
+            visited: Conjunto de posições visitadas
+            
+        Returns:
+            True se a posição é válida, False caso contrário
+        """
+        row, col = pos
+        return (0 <= row < rows and 
+                0 <= col < cols and 
+                pos not in visited)
+    
+    def backtrack(pos: Tuple[int, int], index: int, visited: Set[Tuple[int, int]]) -> bool:
+        """
+        Função recursiva de backtracking para buscar a palavra.
+        
+        Args:
+            pos: Posição atual (linha, coluna)
+            index: Índice do próximo caractere a ser encontrado
+            visited: Conjunto de posições visitadas
+            
+        Returns:
+            True se a palavra pode ser formada a partir desta posição
+        """
+        # Se chegamos ao final da palavra, encontramos uma solução
+        if index == len(word):
+            return True
+        
+        row, col = pos
+        
+        # Verifica se a célula atual corresponde ao caractere esperado
+        if board[row][col] != word[index]:
+            return False
+        
+        # Marca como visitada
+        visited.add(pos)
+        
+        # Explora todas as direções possíveis
+        directions = [(0, 1), (1, 0), (0, -1), (-1, 0)]  # direita, baixo, esquerda, cima
+        
+        for dr, dc in directions:
+            next_pos = (row + dr, col + dc)
+            
+            if is_valid_position(next_pos, visited):
+                if backtrack(next_pos, index + 1, visited):
+                    return True
+        
+        # Backtrack: desmarca a posição
+        visited.remove(pos)
+        return False
+    
+    # Validações iniciais
+    if not board or not board[0]:
+        raise ValueError("Board não pode estar vazio")
+    
+    if not word:
+        return True  # Palavra vazia sempre existe
+    
+    rows, cols = len(board), len(board[0])
+    
+    # Verifica se há caracteres suficientes no board
+    if len(word) > rows * cols:
+        return False
+    
+    # Busca por todas as posições iniciais possíveis
+    for i in range(rows):
+        for j in range(cols):
+            if board[i][j] == word[0]:
+                visited: Set[Tuple[int, int]] = set()
+                if backtrack((i, j), 0, visited):
+                    return True
+    
+    return False
+
+
+def encontrar_todas_ocorrencias(board: List[List[str]], word: str) -> List[List[Tuple[int, int]]]:
+    """
+    Encontra todas as ocorrências possíveis da palavra no board.
+    
+    Args:
+        board: Matriz 2D de caracteres
+        word: Palavra a ser buscada
+        
+    Returns:
+        Lista de caminhos, onde cada caminho é uma lista de coordenadas
+    """
+    def backtrack_all(pos: Tuple[int, int], index: int, 
+                     visited: Set[Tuple[int, int]], 
+                     current_path: List[Tuple[int, int]]) -> None:
+        """
+        Função recursiva para encontrar todos os caminhos.
+        """
+        row, col = pos
+        
+        # Verifica se a célula atual corresponde ao caractere esperado
+        if board[row][col] != word[index]:
+            return
+        
+        # Adiciona ao caminho atual
+        current_path.append(pos)
+        visited.add(pos)
+        
+        # Se completou a palavra, adiciona uma cópia do caminho
+        if index == len(word) - 1:
+            all_paths.append(current_path[:])
+        else:
+            # Continua a busca nas direções adjacentes
+            directions = [(0, 1), (1, 0), (0, -1), (-1, 0)]
+            
+            for dr, dc in directions:
+                next_pos = (row + dr, col + dc)
+                
+                if (0 <= next_pos[0] < rows and 0 <= next_pos[1] < cols and 
+                    next_pos not in visited):
+                    backtrack_all(next_pos, index + 1, visited, current_path)
+        
+        # Backtrack
+        current_path.pop()
+        visited.remove(pos)
+    
+    if not board or not board[0] or not word:
+        return []
+    
+    rows, cols = len(board), len(board[0])
+    all_paths: List[List[Tuple[int, int]]] = []
+    
+    for i in range(rows):
+        for j in range(cols):
+            if board[i][j] == word[0]:
+                visited: Set[Tuple[int, int]] = set()
+                current_path: List[Tuple[int, int]] = []
+                backtrack_all((i, j), 0, visited, current_path)
+    
+    return all_paths
+
+
+def print_board_with_path(board: List[List[str]], path: List[Tuple[int, int]] = None) -> None:
+    """
+    Imprime o board com o caminho destacado.
+    
+    Args:
+        board: Matriz de letras
+        path: Caminho a ser destacado (opcional)
+    """
+    if path is None:
+        path = []
+    
+    path_set = set(path)
+    
+    for i in range(len(board)):
+        for j in range(len(board[0])):
+            if (i, j) in path_set:
+                print(f"\033[92m{board[i][j]}\033[0m", end=" ")  # Verde
+            else:
+                print(board[i][j], end=" ")
+        print()
+
+
+def contar_ocorrencias_palavra(board: List[List[str]], word: str) -> int:
+    """
+    Conta quantas ocorrências distintas da palavra existem no board.
+    
+    Args:
+        board: Matriz de letras
+        word: Palavra a ser contada
+        
+    Returns:
+        Número de ocorrências distintas
+    """
+    return len(encontrar_todas_ocorrencias(board, word))
+
+
+# Exemplo de uso e testes
+if __name__ == "__main__":
+    print("=== BUSCA DE PALAVRAS EM GRADE ===\n")
+    
+    # Board de exemplo
+    board_exemplo = [
+        ["A", "B", "C", "E"],
+        ["S", "F", "C", "S"],
+        ["A", "D", "E", "E"]
+    ]
+    
+    print("=== BOARD ===")
+    print_board_with_path(board_exemplo)
+    
+    # Testes com diferentes palavras
+    test_cases = [
+        "ABCCED",  # Deve retornar True
+        "SEE",     # Deve retornar True  
+        "ABCB",    # Deve retornar False
+        "ABC",     # Deve retornar True
+        "SAD",     # Deve retornar True
+        "ESE",     # Deve retornar False (não pode reusar células)
+        "ABCE",    # Deve retornar False (caminho inválido)
+        "",        # Palavra vazia
+    ]
+    
+    print("\n=== TESTES DE EXISTÊNCIA ===")
+    for palavra in test_cases:
+        existe = existe_palavra(board_exemplo, palavra)
+        status = "✓ EXISTE" if existe else "✗ NÃO EXISTE"
+        print(f"{status:12} → '{palavra}'")
+    
+    print("\n=== DETALHES DAS OCORRÊNCIAS ===")
+    palavras_detalhes = ["SEE", "SAD", "ABC"]
+    
+    for palavra in palavras_detalhes:
+        print(f"\nPalavra: '{palavra}'")
+        ocorrencias = encontrar_todas_ocorrencias(board_exemplo, palavra)
+        print(f"Número de ocorrências: {len(ocorrencias)}")
+        
+        for i, caminho in enumerate(ocorrencias, 1):
+            print(f"  Caminho {i}: {caminho}")
+            print_board_with_path(board_exemplo, caminho)
+            print()
+    
+    # Teste de performance com board maior
+    print("=== TESTE COM BOARD MAIOR ===")
+    board_grande = [
+        ["A", "B", "C", "D", "E"],
+        ["F", "G", "H", "I", "J"],
+        ["K", "L", "M", "N", "O"],
+        ["P", "Q", "R", "S", "T"],
+        ["U", "V", "W", "X", "Y"]
+    ]
+    
+    palavra_longa = "GHMSR"
+    existe = existe_palavra(board_grande, palavra_longa)
+    print(f"Palavra '{palavra_longa}' existe no board grande: {existe}")
+    
+    # Teste com casos edge
+    print("\n=== CASOS ESPECIAIS ===")
+    
+    # Board vazio
+    try:
+        existe_palavra([], "TEST")
+    except ValueError as e:
+        print(f"Board vazio: {e}")
+    
+    # Palavra mais longa que o board
+    board_pequeno = [["A", "B"], ["C", "D"]]
+    palavra_longa = "ABCDE"
+    existe = existe_palavra(board_pequeno, palavra_longa)
+    print(f"Palavra '{palavra_longa}' em board 2x2: {existe} (esperado: False)")
+    
+    # Palavra com caracteres não existentes
+    palavra_inexistente = "XYZ"
+    existe = existe_palavra(board_exemplo, palavra_inexistente)
+    print(f"Palavra '{palavra_inexistente}' em board exemplo: {existe} (esperado: False)")
+
+
+def benchmark_palavras(board: List[List[str]], palavras: List[str]) -> None:
+    """
+    Função para benchmark de performance com múltiplas palavras.
+    
+    Args:
+        board: Matriz de letras
+        palavras: Lista de palavras para testar
+    """
+    import time
+    
+    print("\n=== BENCHMARK DE PERFORMANCE ===")
+    
+    for palavra in palavras:
+        start_time = time.time()
+        resultado = existe_palavra(board, palavra)
+        end_time = time.time()
+        
+        tempo_ms = (end_time - start_time) * 1000
+        status = "Encontrada" if resultado else "Não encontrada"
+        print(f"'{palavra}': {status} ({tempo_ms:.2f} ms)")
+
+
+# Exemplo de benchmark
+if __name__ == "__main__" and False:  # Descomente para executar benchmark
+    board_benchmark = [
+        ["A", "B", "C", "D"],
+        ["E", "F", "G", "H"],
+        ["I", "J", "K", "L"],
+        ["M", "N", "O", "P"]
+    ]
+    
+    palavras_benchmark = ["ABCD", "AFKP", "MNOP", "AEI", "XYZ", "ABCDHLPONMIE"]
+    benchmark_palavras(board_benchmark, palavras_benchmark)
