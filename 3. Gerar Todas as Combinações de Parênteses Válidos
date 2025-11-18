@@ -1,0 +1,214 @@
+from typing import List
+
+def gerar_parenteses(n: int) -> List[str]:
+    """
+    Gera todas as combinações válidas de n pares de parênteses.
+    
+    Args:
+        n: Número de pares de parênteses
+        
+    Returns:
+        Lista de strings com todas as sequências válidas de parênteses
+        
+    Raises:
+        ValueError: Se n for negativo
+    """
+    def backtrack(combinacao: str, abertos: int, fechados: int) -> None:
+        """
+        Função recursiva de backtracking para gerar combinações válidas.
+        
+        Args:
+            combinacao: String sendo construída
+            abertos: Número de parênteses abertos '(' usados até agora
+            fechados: Número de parênteses fechados ')' usados até agora
+        """
+        # Condição de parada: atingimos o tamanho desejado
+        if len(combinacao) == 2 * n:
+            resultado.append(combinacao)
+            return
+        
+        # Pode adicionar '(' se ainda temos abertos disponíveis
+        if abertos < n:
+            backtrack(combinacao + '(', abertos + 1, fechados)
+        
+        # Pode adicionar ')' se temos mais abertos que fechados
+        if fechados < abertos:
+            backtrack(combinacao + ')', abertos, fechados + 1)
+    
+    # Validação da entrada
+    if n < 0:
+        raise ValueError("n deve ser não negativo")
+    if n == 0:
+        return [""]
+    
+    resultado: List[str] = []
+    backtrack("", 0, 0)
+    return resultado
+
+
+def gerar_parenteses_iterativo(n: int) -> List[str]:
+    """
+    Versão iterativa usando programação dinâmica para gerar parênteses válidos.
+    
+    Args:
+        n: Número de pares de parênteses
+        
+    Returns:
+        Lista de strings com todas as sequências válidas de parênteses
+    """
+    if n < 0:
+        raise ValueError("n deve ser não negativo")
+    if n == 0:
+        return [""]
+    
+    # dp[i] armazena todas as combinações válidas para i pares
+    dp = [[] for _ in range(n + 1)]
+    dp[0] = [""]
+    
+    for i in range(1, n + 1):
+        for j in range(i):
+            # Combina combinações de j pares com (i-1-j) pares
+            for left in dp[j]:
+                for right in dp[i - 1 - j]:
+                    dp[i].append(f"({left}){right}")
+    
+    return dp[n]
+
+
+def validar_parenteses(s: str) -> bool:
+    """
+    Valida se uma string de parênteses é válida.
+    
+    Args:
+        s: String contendo apenas '(' e ')'
+        
+    Returns:
+        True se a sequência é válida, False caso contrário
+    """
+    balance = 0
+    for char in s:
+        if char == '(':
+            balance += 1
+        else:  # char == ')'
+            balance -= 1
+            if balance < 0:
+                return False
+    return balance == 0
+
+
+def gerar_parenteses_com_validacao(n: int) -> List[str]:
+    """
+    Versão alternativa que gera todas as combinações e depois valida.
+    Menos eficiente, mas útil para demonstração.
+    
+    Args:
+        n: Número de pares de parênteses
+        
+    Returns:
+        Lista de strings válidas
+    """
+    from itertools import product
+    
+    if n < 0:
+        raise ValueError("n deve ser não negativo")
+    if n == 0:
+        return [""]
+    
+    # Gera todas as combinações possíveis de 2n parênteses
+    todas_combinacoes = [''.join(comb) for comb in product('()', repeat=2*n)]
+    
+    # Filtra apenas as válidas
+    return [comb for comb in todas_combinacoes if validar_parenteses(comb)]
+
+
+def contar_catalan(n: int) -> int:
+    """
+    Calcula o n-ésimo número de Catalan, que conta o número de 
+    combinações válidas de n pares de parênteses.
+    
+    Args:
+        n: Índice do número de Catalan
+        
+    Returns:
+        O n-ésimo número de Catalan
+    """
+    from math import comb
+    return comb(2 * n, n) // (n + 1)
+
+
+def print_combinacoes_detalhadas(combinacoes: List[str]) -> None:
+    """
+    Imprime as combinações de forma organizada com informações úteis.
+    
+    Args:
+        combinacoes: Lista de strings de parênteses
+    """
+    if not combinacoes:
+        print("Nenhuma combinação")
+        return
+    
+    print(f"Total de combinações: {len(combinacoes)}")
+    print("Combinações válidas:")
+    
+    for i, comb in enumerate(combinacoes, 1):
+        print(f"{i:2d}. {comb}")
+        
+        # Demonstração da validação (opcional)
+        assert validar_parenteses(comb), f"Combinação inválida: {comb}"
+
+
+# Exemplo de uso e testes
+if __name__ == "__main__":
+    print("=== GERADOR DE PARÊNTESES VÁLIDOS ===\n")
+    
+    # Teste para diferentes valores de n
+    for n in range(6):
+        print(f"=== n = {n} ===")
+        print(f"Número de Catalan C({n}) = {contar_catalan(n)}")
+        
+        combinacoes = gerar_parenteses(n)
+        print_combinacoes_detalhadas(combinacoes)
+        print()
+    
+    # Comparação de métodos
+    print("=== COMPARAÇÃO DE MÉTODOS (n=4) ===")
+    
+    n_test = 4
+    catalan_4 = contar_catalan(n_test)
+    
+    # Método backtracking (recomendado)
+    combinacoes_backtrack = gerar_parenteses(n_test)
+    print(f"Backtracking: {len(combinacoes_backtrack)} combinações")
+    
+    # Método iterativo
+    combinacoes_iterativo = gerar_parenteses_iterativo(n_test)
+    print(f"Iterativo:    {len(combinacoes_iterativo)} combinações")
+    
+    # Método com validação (menos eficiente)
+    combinacoes_validacao = gerar_parenteses_com_validacao(n_test)
+    print(f"Com validação: {len(combinacoes_validacao)} combinações")
+    
+    print(f"Número de Catalan: {catalan_4}")
+    
+    # Verifica que todos os métodos produzem o mesmo resultado
+    assert set(combinacoes_backtrack) == set(combinacoes_iterativo)
+    assert set(combinacoes_backtrack) == set(combinacoes_validacao)
+    assert len(combinacoes_backtrack) == catalan_4
+    
+    print("✓ Todos os métodos produzem os mesmos resultados!")
+    
+    # Demonstração de validação
+    print("\n=== VALIDAÇÃO DE SEQUÊNCIAS ===")
+    testes = [
+        "()()()",    # válido
+        "((()))",    # válido  
+        "(()())",    # válido
+        "())()(",    # inválido
+        "((())",     # inválido
+        "())(()",    # inválido
+    ]
+    
+    for teste in testes:
+        valido = validar_parenteses(teste)
+        status = "✓ VÁLIDO" if valido else "✗ INVÁLIDO"
+        print(f"{status}: {teste}")
