@@ -1,0 +1,227 @@
+from typing import List, Tuple, Optional, Set
+
+def encontrar_caminho(maze: List[List[int]], inicio: Tuple[int, int], fim: Tuple[int, int]) -> Optional[List[Tuple[int, int]]]:
+    """
+    Encontra um caminho válido do início ao fim em um labirinto usando DFS com backtracking.
+    
+    Args:
+        maze: Matriz 2D onde 0 representa célula livre e 1 representa parede
+        inicio: Tupla (linha, coluna) com a posição inicial
+        fim: Tupla (linha, coluna) com a posição final
+        
+    Returns:
+        Lista de coordenadas representando o caminho do início ao fim,
+        ou None se não existir caminho
+    """
+    def is_valid(pos: Tuple[int, int]) -> bool:
+        """Verifica se a posição é válida e transitável."""
+        row, col = pos
+        return (0 <= row < len(maze) and 
+                0 <= col < len(maze[0]) and 
+                maze[row][col] == 0 and
+                pos not in visited)
+    
+    def dfs(current: Tuple[int, int]) -> bool:
+        """
+        Função recursiva de DFS para encontrar caminho.
+        
+        Args:
+            current: Posição atual sendo explorada
+            
+        Returns:
+            True se encontrou caminho, False caso contrário
+        """
+        nonlocal path
+        
+        # Marca como visitado e adiciona ao caminho
+        visited.add(current)
+        path.append(current)
+        
+        # Se chegou ao destino, retorna sucesso
+        if current == fim:
+            return True
+        
+        # Direções: baixo, direita, cima, esquerda
+        directions = [(1, 0), (0, 1), (-1, 0), (0, -1)]
+        
+        for dr, dc in directions:
+            next_pos = (current[0] + dr, current[1] + dc)
+            
+            if is_valid(next_pos):
+                if dfs(next_pos):
+                    return True
+        
+        # Backtrack: remove do caminho se não levou à solução
+        path.pop()
+        return False
+    
+    # Validação das entradas
+    if not maze or not maze[0]:
+        return None
+    
+    rows, cols = len(maze), len(maze[0])
+    start_row, start_col = inicio
+    end_row, end_col = fim
+    
+    # Verifica se início e fim são válidos
+    if (not (0 <= start_row < rows and 0 <= start_col < cols) or
+        not (0 <= end_row < rows and 0 <= end_col < cols)):
+        return None
+    
+    if maze[start_row][start_col] == 1 or maze[end_row][end_col] == 1:
+        return None
+    
+    # Inicializa estruturas para busca
+    visited: Set[Tuple[int, int]] = set()
+    path: List[Tuple[int, int]] = []
+    
+    # Executa DFS
+    if dfs(inicio):
+        return path
+    return None
+
+
+def encontrar_todos_caminhos(maze: List[List[int]], inicio: Tuple[int, int], fim: Tuple[int, int]) -> List[List[Tuple[int, int]]]:
+    """
+    Encontra todos os caminhos possíveis do início ao fim no labirinto.
+    
+    Args:
+        maze: Matriz 2D onde 0 representa célula livre e 1 representa parede
+        inicio: Tupla (linha, coluna) com a posição inicial
+        fim: Tupla (linha, coluna) com a posição final
+        
+    Returns:
+        Lista de todos os caminhos válidos do início ao fim
+    """
+    def is_valid(pos: Tuple[int, int], current_path: Set[Tuple[int, int]]) -> bool:
+        """Verifica se a posição é válida e não está no caminho atual."""
+        row, col = pos
+        return (0 <= row < len(maze) and 
+                0 <= col < len(maze[0]) and 
+                maze[row][col] == 0 and
+                pos not in current_path)
+    
+    def dfs_all_paths(current: Tuple[int, int], current_path: List[Tuple[int, int]]) -> None:
+        """
+        Função recursiva para encontrar todos os caminhos.
+        
+        Args:
+            current: Posição atual
+            current_path: Caminho percorrido até o momento
+        """
+        # Adiciona posição atual ao caminho
+        current_path.append(current)
+        
+        # Se chegou ao destino, adiciona uma cópia do caminho às soluções
+        if current == fim:
+            all_paths.append(current_path[:])
+        else:
+            # Explora todas as direções válidas
+            directions = [(1, 0), (0, 1), (-1, 0), (0, -1)]
+            
+            for dr, dc in directions:
+                next_pos = (current[0] + dr, current[1] + dc)
+                
+                if is_valid(next_pos, set(current_path)):
+                    dfs_all_paths(next_pos, current_path)
+        
+        # Backtrack: remove a posição atual do caminho
+        current_path.pop()
+    
+    # Validação das entradas
+    if not maze or not maze[0]:
+        return []
+    
+    rows, cols = len(maze), len(maze[0])
+    start_row, start_col = inicio
+    end_row, end_col = fim
+    
+    if (not (0 <= start_row < rows and 0 <= start_col < cols) or
+        not (0 <= end_row < rows and 0 <= end_col < cols)):
+        return []
+    
+    if maze[start_row][start_col] == 1 or maze[end_row][end_col] == 1:
+        return []
+    
+    all_paths: List[List[Tuple[int, int]]] = []
+    dfs_all_paths(inicio, [])
+    
+    return all_paths
+
+
+def print_maze_with_path(maze: List[List[int]], path: List[Tuple[int, int]] = None) -> None:
+    """
+    Imprime o labirinto com o caminho destacado.
+    
+    Args:
+        maze: Matriz do labirinto
+        path: Caminho a ser destacado (opcional)
+    """
+    if path is None:
+        path = []
+    
+    path_set = set(path)
+    
+    for i in range(len(maze)):
+        for j in range(len(maze[0])):
+            if (i, j) in path_set:
+                print('◉', end=' ')  # Célula no caminho
+            elif maze[i][j] == 1:
+                print('█', end=' ')  # Parede
+            else:
+                print('.', end=' ')  # Célula livre
+        print()
+
+
+# Exemplo de uso e testes
+if __name__ == "__main__":
+    # Labirinto de exemplo
+    maze_exemplo = [
+        [0, 1, 0, 0, 0],
+        [0, 1, 0, 1, 0],
+        [0, 0, 0, 1, 0],
+        [0, 1, 1, 1, 0],
+        [0, 0, 0, 0, 0]
+    ]
+    
+    inicio = (0, 0)
+    fim = (4, 4)
+    
+    print("=== Labirinto Original ===")
+    print_maze_with_path(maze_exemplo)
+    
+    print(f"\n=== Buscando um caminho de {inicio} para {fim} ===")
+    caminho = encontrar_caminho(maze_exemplo, inicio, fim)
+    
+    if caminho:
+        print("Caminho encontrado:")
+        for pos in caminho:
+            print(f"  {pos}")
+        print("\nLabirinto com caminho:")
+        print_maze_with_path(maze_exemplo, caminho)
+    else:
+        print("Nenhum caminho encontrado!")
+    
+    print(f"\n=== Buscando TODOS os caminhos de {inicio} para {fim} ===")
+    todos_caminhos = encontrar_todos_caminhos(maze_exemplo, inicio, fim)
+    
+    print(f"Encontrados {len(todos_caminhos)} caminhos:")
+    for i, caminho in enumerate(todos_caminhos, 1):
+        print(f"\nCaminho {i} (comprimento: {len(caminho)}):")
+        print(" → ".join(f"({r},{c})" for r, c in caminho))
+    
+    # Teste com labirinto sem solução
+    print(f"\n=== Teste com labirinto sem solução ===")
+    maze_sem_solucao = [
+        [0, 1, 0],
+        [1, 1, 0],
+        [0, 1, 0]
+    ]
+    inicio2 = (0, 0)
+    fim2 = (2, 2)
+    
+    caminho2 = encontrar_caminho(maze_sem_solucao, inicio2, fim2)
+    if caminho2:
+        print("Caminho encontrado (inesperado!)")
+    else:
+        print("Nenhum caminho encontrado (esperado)")
