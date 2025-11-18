@@ -1,0 +1,143 @@
+def solve_n_queens(n: int) -> list[list[str]]:
+    """
+    Resolve o problema das N-Rainhas usando backtracking.
+    
+    Args:
+        n: Número de rainhas e tamanho do tabuleiro (n x n)
+        
+    Returns:
+        Lista de soluções, onde cada solução é uma lista de strings
+        representando o tabuleiro com '.' para vazio e 'Q' para rainha
+    """
+    def is_safe(board: list[int], row: int, col: int) -> bool:
+        """
+        Verifica se é seguro posicionar uma rainha na posição (row, col).
+        
+        Args:
+            board: Lista onde board[i] = coluna da rainha na linha i
+            row: Linha atual
+            col: Coluna a ser verificada
+            
+        Returns:
+            True se a posição é segura, False caso contrário
+        """
+        for i in range(row):
+            # Verifica mesma coluna
+            if board[i] == col:
+                return False
+            # Verifica diagonais
+            if abs(board[i] - col) == abs(i - row):
+                return False
+        return True
+    
+    def create_board(solution: list[int]) -> list[str]:
+        """
+        Converte uma solução em lista de índices para representação do tabuleiro.
+        
+        Args:
+            solution: Lista onde solution[i] = coluna da rainha na linha i
+            
+        Returns:
+            Lista de strings representando o tabuleiro
+        """
+        board = []
+        for col in solution:
+            row_str = ['.'] * n
+            row_str[col] = 'Q'
+            board.append(''.join(row_str))
+        return board
+    
+    def backtrack(row: int, current_board: list[int]) -> None:
+        """
+        Função recursiva de backtracking para encontrar soluções.
+        
+        Args:
+            row: Linha atual sendo processada
+            current_board: Estado atual do tabuleiro
+        """
+        if row == n:
+            # Encontrou uma solução válida
+            solutions.append(create_board(current_board[:]))
+            return
+        
+        for col in range(n):
+            if is_safe(current_board, row, col):
+                current_board[row] = col
+                backtrack(row + 1, current_board)
+                # Backtrack - remove a rainha (não necessário com lista mutável)
+    
+    if n <= 0:
+        return []
+    
+    solutions = []
+    # Inicializa o tabuleiro com -1 (nenhuma rainha posicionada)
+    initial_board = [-1] * n
+    backtrack(0, initial_board)
+    
+    return solutions
+
+
+def solve_n_queens_positions(n: int) -> list[list[int]]:
+    """
+    Versão alternativa que retorna as posições das rainhas.
+    
+    Args:
+        n: Número de rainhas e tamanho do tabuleiro
+        
+    Returns:
+        Lista de soluções, onde cada solução é uma lista de índices de coluna
+        para cada linha
+    """
+    def backtrack(row: int, current_board: list[int], solutions: list[list[int]]) -> None:
+        if row == n:
+            solutions.append(current_board[:])
+            return
+        
+        for col in range(n):
+            if all(current_board[i] != col and 
+                   abs(current_board[i] - col) != abs(i - row) 
+                   for i in range(row)):
+                current_board[row] = col
+                backtrack(row + 1, current_board, solutions)
+    
+    if n <= 0:
+        return []
+    
+    solutions = []
+    initial_board = [-1] * n
+    backtrack(0, initial_board, solutions)
+    return solutions
+
+
+def print_solutions(solutions: list[list[str]]) -> None:
+    """
+    Imprime as soluções de forma legível.
+    
+    Args:
+        solutions: Lista de soluções do problema das N-Rainhas
+    """
+    for i, solution in enumerate(solutions, 1):
+        print(f"Solução {i}:")
+        for row in solution:
+            print(row)
+        print()
+
+
+# Exemplo de uso e testes
+if __name__ == "__main__":
+    # Teste com n = 4
+    print("=== N-Rainhas com n = 4 ===")
+    solutions_4 = solve_n_queens(4)
+    print(f"Número de soluções: {len(solutions_4)}")
+    print_solutions(solutions_4)
+    
+    # Teste com n = 8 (apenas contagem para não poluir a saída)
+    print("\n=== N-Rainhas com n = 8 ===")
+    solutions_8 = solve_n_queens(8)
+    print(f"Número de soluções para n=8: {len(solutions_8)}")
+    
+    # Versão com posições
+    print("\n=== Soluções como posições (n=4) ===")
+    positions_4 = solve_n_queens_positions(4)
+    for i, pos in enumerate(positions_4, 1):
+        print(f"Solução {i}: {pos}")
